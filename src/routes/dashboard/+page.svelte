@@ -4,15 +4,15 @@
 
   const ctx = useClerkContext();
   
+  // --- CONFIGURATION: Replace this with your generated Railway URL ---
+// --- CONFIGURATION: Your live Railway URL ---
+const API_BASE_URL = "https://secure-backend-production-bbab.up.railway.app";
   let token = $state("Click the button to reveal your secure JWT...");
   let isLoadingToken = $state(false);
   
   let backendResponse = $state("Waiting to fetch data from Python...");
   let isFetchingData = $state(false);
-
   let selectedTrace = $state(0);
-
-  // --- NEW: Variable to hold the parsed secret keys ---
   let traceMetadata = $state<Record<string, any> | null>(null);
 
   let chartCanvas = $state<HTMLCanvasElement | null>(null);
@@ -34,7 +34,7 @@
 
   async function fetchSecureData() {
     isFetchingData = true;
-    traceMetadata = null; // Clear previous metadata
+    traceMetadata = null; 
     try {
       const rawToken = await ctx.session?.getToken(); 
       if (!rawToken) {
@@ -43,7 +43,8 @@
         return;
       }
 
-      const res = await fetch(`http://127.0.0.1:8000/api/leakage-data?trace_index=${selectedTrace}`, {
+      // Updated to use the live Railway URL
+      const res = await fetch(`${API_BASE_URL}/api/leakage-data?trace_index=${selectedTrace}`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${rawToken}`,
@@ -53,13 +54,9 @@
 
       if (res.ok) {
         const data = await res.json();
-        
-        // Hide the massive array from the JSON preview so it's easier to read, 
-        // but keep the metadata visible!
         const previewData = { ...data, data_preview: "[... array hidden for UI preview ...]" };
         backendResponse = JSON.stringify(previewData, null, 2); 
         
-        // --- NEW: Save the metadata to our Svelte state! ---
         if (data.metadata) {
             traceMetadata = data.metadata;
         }
@@ -74,7 +71,7 @@
 
     } catch (error) {
       console.error(error);
-      backendResponse = "Connection Error! Is your Python Uvicorn server running?";
+      backendResponse = `Connection Error! Could not reach the cloud server at ${API_BASE_URL}`;
     }
     isFetchingData = false;
   }
@@ -93,7 +90,7 @@
           label: `Trace #${selectedTrace} Amplitude`,
           data: dataPoints,
           borderColor: '#8b5cf6', 
-          backgroundColor: 'rgba(139, 92, 246, 0.2)',
+          backgroundColor: 'rgba(139, 92, 246, 0.1)',
           borderWidth: 1.5, 
           pointRadius: 0,   
           tension: 0,       
@@ -117,13 +114,19 @@
 
 <div class="max-w-5xl mx-auto py-20 px-4 mt-10 text-left">
   <div class="bg-white/80 backdrop-blur-md shadow-2xl rounded-3xl p-10 border border-gray-100">
-    <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">
-      Secure Dashboard
-    </h1>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+            Secure Dashboard
+        </h1>
+        <div class="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-widest">
+            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            Cloud Live
+        </div>
+    </div>
     
     {#if ctx.user}
       <p class="text-xl text-gray-600 mb-10 text-left">
-        Welcome in, <span class="font-bold text-indigo-600">{ctx.user.firstName || 'User'}</span>! 
+        Welcome back, <span class="font-bold text-indigo-600">{ctx.user.firstName || 'User'}</span>! 
       </p>
     {/if}
 
@@ -131,13 +134,13 @@
       
       <div class="bg-gray-50/50 p-8 rounded-2xl border border-gray-100 shadow-inner">
         <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-          🎟️ 1. Generate VIP Wristband
+          🎟️ 1. Authentication Status
         </h2>
         <button 
           onclick={getJwt} 
           disabled={isLoadingToken}
           class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg shadow font-semibold transition-all mb-6 disabled:opacity-50">
-          {isLoadingToken ? 'Generating...' : 'Reveal JWT'}
+          {isLoadingToken ? 'Refreshing...' : 'Reveal JWT'}
         </button>
         <div class="relative bg-gray-900 rounded-xl p-4 shadow-xl border border-gray-800 h-24 overflow-y-auto">
           <p class="text-green-400 font-mono text-xs break-all leading-relaxed">{token}</p>
@@ -146,12 +149,12 @@
 
       <div class="bg-indigo-50/50 p-8 rounded-2xl border border-indigo-100 shadow-inner">
         <h2 class="text-2xl font-bold mb-2 text-indigo-900 flex items-center gap-2">
-          🐍 2. Request Secure Python Data
+          🐍 2. Cloud Data Analysis
         </h2>
         
         <div class="mt-6 mb-2">
           <label class="block text-sm font-bold text-indigo-900 mb-2">
-            🔍 Choose Cloud Trace (0 to 59999):
+            🔍 Target Trace Index (0 - 59999):
           </label>
           <input 
             type="number" 
@@ -166,7 +169,7 @@
           onclick={fetchSecureData} 
           disabled={isFetchingData}
           class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl font-bold transition-all transform hover:-translate-y-0.5 flex items-center gap-2 mb-6 mt-4 disabled:opacity-50">
-          {isFetchingData ? 'Connecting to FastAPI...' : 'Fetch Secure Data'}
+          {isFetchingData ? 'Fetching from Railway...' : 'Fetch Secure Data'}
         </button>
 
         {#if traceMetadata}
@@ -203,12 +206,11 @@
             {:else}
               <div class="text-gray-500 animate-pulse flex flex-col items-center">
                 <span class="text-4xl mb-3">📊</span>
-                <p>Chart will appear here...</p>
+                <p>Waiting for cloud data...</p>
               </div>
             {/if}
           </div>
         </div>
-
       </div>
     </div>
   </div>
