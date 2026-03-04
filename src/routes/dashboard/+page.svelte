@@ -6,7 +6,7 @@
   
   // --- CONFIGURATION: Replace this with your generated Railway URL ---
 // --- CONFIGURATION: Your live Railway URL ---
-const API_BASE_URL = "https://secure-backend-production-bbab.up.railway.app";
+const API_BASE_URL = "https://secure-backend-production-bbab.up.railway.app";1
   let token = $state("Click the button to reveal your secure JWT...");
   let isLoadingToken = $state(false);
   
@@ -153,6 +153,7 @@ const API_BASE_URL = "https://secure-backend-production-bbab.up.railway.app";
         </h2>
         
         <div class="mt-6 mb-2">
+          <!-- svelte-ignore a11y_label_has_associated_control -->
           <label class="block text-sm font-bold text-indigo-900 mb-2">
             🔍 Target Trace Index (0 - 59999):
           </label>
